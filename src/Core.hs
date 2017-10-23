@@ -1,25 +1,30 @@
-module Lib
-    ( someFunc
+module Core
+    ( eval, parse
     ) where
 
-import           Text.Parsec
+import           Text.Parsec        (char, eof, letter, many, many1, spaces,
+                                     (<|>))
+import qualified Text.Parsec        as Parsec (parse)
 import           Text.Parsec.String
 
 data Term =
      Atom String
     | App Term Term
     deriving (Eq)
+
 instance Show Term where
     show (Atom s)          = s
     show (t1 `App` Atom s) = show t1 ++ " " ++ s
     show (t1 `App` t2)     = show t1 ++ " (" ++ show t2 ++ ")"
-
 
 {- term BNF
     term :: = argument | term argument
     argument = identifer | (term)
     identifier
 -}
+
+parse = Parsec.parse top ""
+
 top :: Parser Term
 top = term <* eof
 
@@ -39,22 +44,3 @@ eval (Atom "i" `App` t)                    = t
 eval (Atom "k" `App` t `App` _)            = t
 eval (Atom "s" `App` t1 `App` t2 `App` t3) = t1 `App` t3 `App` (t2 `App` t3)
 eval (t1 `App` t2)                         = if eval t1 /= t1 then eval t1 `App` t2 else t1 `App` eval t2
-
-saturate :: Eq a => (a -> a) -> a -> a
-saturate f t
-  |  f t == t = t
-  | otherwise = saturate f (f t)
-
-saturateL :: Eq a => (a -> a) -> a -> [a]
-saturateL f t
-  | f t == t = [t]
-  | otherwise =  t : saturateL f (f t)
-
-someFunc :: IO ()
-someFunc = do
-    input <- getLine
-    case parse top "" input of
-        Left _  -> putStrLn "?"
-        Right t -> mapM_ print $ saturateL eval t
-    putStrLn ""
-    someFunc
