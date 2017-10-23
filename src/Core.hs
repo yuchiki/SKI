@@ -1,13 +1,16 @@
 module Core
-    ( eval, parse
+    ( eval, parse, Statement(..), Env, empty, update
     ) where
 
 import qualified Data.Map           as Map
 import           Data.Maybe         (fromMaybe)
-import           Text.Parsec        (char, eof, letter, many, many1, spaces,
-                                     (<|>))
+import           Text.Parsec        (ParseError, char, eof, letter, many, many1,
+                                     spaces, string, (<|>))
 import qualified Text.Parsec        as Parsec (parse)
 import           Text.Parsec.String
+
+type Prog = [Statement]
+data Statement = Assignment String Term | RawTerm Term
 
 data Term =
      Atom String
@@ -20,17 +23,40 @@ instance Show Term where
     show (t1 `App` t2)     = show t1 ++ " (" ++ show t2 ++ ")"
 
 {- BNF
-    term :: = argument | term argument
-    argument = identifer | (term)
+    top ::= statement eof
+    statement ::= (asignment | term)
+    asignment ::= let identifier = term
+    term ::= argument | term argument
+    argument ::= identifer | (term)
     identifier
 -}
 
-sampleEnvironment = Map.singleton "copy" (Atom "s" `App` Atom "i" `App` Atom "i")
+type Env = Map.Map String Term
 
+update :: String -> Term -> Env -> Env
+update = Map.insert
+
+empty :: Env
+empty = Map.empty
+
+parse :: String -> Either ParseError Statement
 parse = Parsec.parse top ""
 
-top :: Parser Term
-top = term <* eof
+top :: Parser Statement
+top = statement <* eof
+
+statement :: Parser Statement
+statement = assignment <|> RawTerm <$> term
+
+assignment :: Parser Statement
+assignment = do
+    string "let"
+    spaces
+    (Atom i) <- identifier
+    spaces
+    char '='
+    t <- term
+    return $ Assignment i t
 
 term :: Parser Term
 term = foldl1 App <$> many1 argument
@@ -41,9 +67,9 @@ argument = spaces *> (char '(' *> term <* char ')' <|> identifier) <* spaces
 identifier :: Parser Term
 identifier = Atom <$> many1 letter
 
-eval :: Term -> Term
-eval t@(Atom s) = fromMaybe t $ Map.lookup s sampleEnvironment
-eval (Atom "i" `App` t)                    = t
-eval (Atom "k" `App` t `App` _)            = t
-eval (Atom "s" `App` t1 `App` t2 `App` t3) = t1 `App` t3 `App` (t2 `App` t3)
-eval (t1 `App` t2)                         = if eval t1 /= t1 then eval t1 `App` t2 else t1 `App` eval t2
+eval :: Env -> Term -> Term
+eval e t@(Atom s) = fromMaybe t $ Map.lookup s e
+eval _ (Atom "i" `App` t)                    = t
+eval _ (Atom "k" `App` t `App` _)            = t
+eval _ (Atom "s" `App` t1 `App` t2 `App` t3) = t1 `App` t3 `App` (t2 `App` t3)
+eval e (t1 `App` t2)                         = if eval e t1 /= t1 then eval e t1 `App` t2 else t1 `App` eval e t2
