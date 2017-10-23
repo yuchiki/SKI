@@ -1,16 +1,53 @@
 module Repl (repl, initRepl) where
-import           Core      (Env, Statement (..), empty, eval, parse, update)
+import           Core               (Env, Statement (..), empty, eval, parse,
+                                     update)
 import           System.IO
 
+import           Text.Parsec
+import qualified Text.Parsec.String as ParsecS
+
+{- BNF
+  ? | help | :s | :show | statement
+-}
+
+data Command = Help | Show | Statement
+
+command :: ParsecS.Parser Command
+command =
+  spaces *>
+  try (char '?' *> spaces *> eof ) *> return Help <|>
+  try (string "help" *> spaces *> eof) *> return Help <|>
+  try (string ":s") *> spaces *> eof *> return Show <|>
+  try (string ":show" *> spaces *> eof) *> return Show <|>
+  return Statement
+
 initRepl :: IO ()
-initRepl = repl empty
+initRepl = do
+  putStrLn "    SKI 0.1.0.0"
+  putStrLn "Type '?' to show help."
+  repl empty
 
 repl :: Env -> IO ()
 repl e = do
-  putStr ">"
+  putStr "SKI>"
   hFlush stdout
   input <- getLine
-  case parse input of
+  case Text.Parsec.parse command "" input of
+    Right Help -> do
+      putStrLn "?                         : show help"
+      putStrLn ":s                        : show definitions"
+      putStrLn "<term>                    : evaluate term"
+      putStrLn "let <identifier> = <term> : define term"
+      repl e
+    Right Show -> do
+      print e
+      repl e
+    Right Statement -> readStatement e input
+    Left _ -> Prelude.putStrLn "Command parse error."
+
+readStatement :: Env -> String -> IO ()
+readStatement e input =
+  case Core.parse input of
     Left _                 -> do
       putStrLn "?"
       repl e
