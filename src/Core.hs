@@ -2,6 +2,8 @@ module Core
     ( eval, parse
     ) where
 
+import qualified Data.Map           as Map
+import           Data.Maybe         (fromMaybe)
 import           Text.Parsec        (char, eof, letter, many, many1, spaces,
                                      (<|>))
 import qualified Text.Parsec        as Parsec (parse)
@@ -17,11 +19,13 @@ instance Show Term where
     show (t1 `App` Atom s) = show t1 ++ " " ++ s
     show (t1 `App` t2)     = show t1 ++ " (" ++ show t2 ++ ")"
 
-{- term BNF
+{- BNF
     term :: = argument | term argument
     argument = identifer | (term)
     identifier
 -}
+
+sampleEnvironment = Map.singleton "copy" (Atom "s" `App` Atom "i" `App` Atom "i")
 
 parse = Parsec.parse top ""
 
@@ -32,14 +36,13 @@ term :: Parser Term
 term = foldl1 App <$> many1 argument
 
 argument :: Parser Term
-argument =
-    spaces *> (char '(' *> term <* char ')' <|> identifier) <* spaces
+argument = spaces *> (char '(' *> term <* char ')' <|> identifier) <* spaces
 
 identifier :: Parser Term
 identifier = Atom <$> many1 letter
 
 eval :: Term -> Term
-eval t@(Atom _)                            = t
+eval t@(Atom s) = fromMaybe t $ Map.lookup s sampleEnvironment
 eval (Atom "i" `App` t)                    = t
 eval (Atom "k" `App` t `App` _)            = t
 eval (Atom "s" `App` t1 `App` t2 `App` t3) = t1 `App` t3 `App` (t2 `App` t3)
