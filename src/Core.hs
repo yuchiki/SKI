@@ -1,5 +1,5 @@
 module Core
-    ( eval, parse, Statement(..), Env, empty, update
+    ( eval, parse, Statement(..), Env, empty, update, showEnv
     ) where
 
 import qualified Data.Map           as Map
@@ -39,6 +39,9 @@ update = Map.insert
 empty :: Env
 empty = Map.empty
 
+showEnv :: Env -> String
+showEnv e = concatMap (\(i, t) -> concat [pad 10 i, " = ", show t, "\n"] ) $ Map.toList e
+
 parse :: String -> Either ParseError Statement
 parse = Parsec.parse top ""
 
@@ -73,3 +76,6 @@ eval _ (Atom "i" `App` t)                    = t
 eval _ (Atom "k" `App` t `App` _)            = t
 eval _ (Atom "s" `App` t1 `App` t2 `App` t3) = t1 `App` t3 `App` (t2 `App` t3)
 eval e (t1 `App` t2)                         = if eval e t1 /= t1 then eval e t1 `App` t2 else t1 `App` eval e t2
+
+pad :: Int -> String -> String
+pad i s = s ++ replicate (i - length s) ' '

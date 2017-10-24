@@ -1,12 +1,13 @@
 module Repl (repl, initRepl) where
 import           Core               (Env, Statement (..), empty, eval, parse,
-                                     update)
+                                     showEnv, update)
 import           System.IO
 
 import           Data.Either
 import qualified SKILibrary
 import           Text.Parsec
 import qualified Text.Parsec.String as ParsecS
+import           Util
 
 {- BNF
   ? | help | :s | :show | statement
@@ -27,8 +28,6 @@ initRepl :: IO ()
 initRepl = do
   putStrLn "    SKI 0.1.0.0"
   putStrLn "Type '?' to show help."
-  putStrLn SKILibrary.stdlib
-  print $ map Core.parse . lines $ SKILibrary.stdlib
   repl $ readLibrary empty SKILibrary.stdlib
 
 readLibrary :: Env -> String -> Env
@@ -45,19 +44,19 @@ repl e = do
       putStrLn "?                         : show help"
       putStrLn ":s                        : show definitions"
       putStrLn "<term>                    : evaluate term"
-      putStrLn "let <identifier> = <term> : define term"
+      putStrLn $ concat [italic "let ", "<identifier>", italic " = ", "<term> : define term"]
       repl e
     Right Show -> do
-      print e
+      putStr $ showEnv e
       repl e
     Right Statement -> readStatement e input
-    Left _ -> Prelude.putStrLn "Command parse error."
+    Left _ -> Prelude.putStrLn $ errStr "Command parse error."
 
 readStatement :: Env -> String -> IO ()
 readStatement e input =
   case Core.parse input of
     Left _                 -> do
-      putStrLn "?"
+      putStrLn $ errStr "could not parse."
       repl e
     Right (Assignment s t) -> do
       putStrLn $ concat [s, " = ", show t]
@@ -75,3 +74,4 @@ saturateL :: Eq a => (a -> a) -> a -> [a]
 saturateL f t
   | f t == t = [t]
   | otherwise =  t : saturateL f (f t)
+
