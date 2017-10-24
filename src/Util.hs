@@ -1,4 +1,6 @@
-module Util (decorate, errStr, italic) where
+module Util (decorate, errStr, italic, trim) where
+
+import           Data.Char (isSpace)
 
 type Decorator = String -> String
 
@@ -34,3 +36,7 @@ errStr = decorate Normal Red
 
 italic :: Decorator
 italic = decorate Italic White
+
+trim :: String -> String
+trim =  f . f
+    where f = reverse . dropWhile isSpace

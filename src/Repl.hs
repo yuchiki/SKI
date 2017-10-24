@@ -1,10 +1,10 @@
 module Repl (repl, initRepl) where
+import           Control.Monad
 import           Core               (Env, Statement (..), empty, eval, parse,
                                      showEnv, update)
-import           System.IO
-
 import           Data.Either
 import qualified SKILibrary
+import           System.IO
 import           Text.Parsec
 import qualified Text.Parsec.String as ParsecS
 import           Util
@@ -38,7 +38,8 @@ repl :: Env -> IO ()
 repl e = do
   putStr "SKI>"
   hFlush stdout
-  input <- getLine
+  input <- trim <$> getLine
+  when (null input) $ repl e
   case Text.Parsec.parse command "" input of
     Right Help -> do
       putStrLn "?                         : show help"
