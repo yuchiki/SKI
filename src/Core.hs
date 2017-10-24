@@ -4,20 +4,18 @@ module Core
 
 import qualified Data.Map           as Map
 import           Data.Maybe         (fromMaybe)
-import           Text.Parsec        (ParseError, char, eof, letter, many, many1,
-                                     spaces, string, (<|>))
+import           Text.Parsec        (ParseError, char, digit, eof, letter, many,
+                                     many1, spaces, string, (<|>))
 import qualified Text.Parsec        as Parsec (parse)
 import           Text.Parsec.String
 
 type Prog = [Statement]
 data Statement = Import String | Assignment String Term | RawTerm Term deriving (Show)
 
-data Term =
-     Atom String
-    | App Term Term
-    deriving (Eq)
+data Term = Atom String | CInt Int | App Term Term deriving (Eq)
 
 instance Show Term where
+    show (CInt i)          = show i
     show (Atom s)          = s
     show (t1 `App` Atom s) = show t1 ++ " " ++ s
     show (t1 `App` t2)     = show t1 ++ " (" ++ show t2 ++ ")"
@@ -28,7 +26,7 @@ instance Show Term where
     importLib ::= 'import' identifier
     asignment ::= let identifier = term
     term ::= argument | term argument
-    argument ::= identifer | (term)
+    argument ::= identifer | integer | (term)
     identifier
 -}
 
@@ -69,12 +67,18 @@ term :: Parser Term
 term = foldl1 App <$> many1 argument
 
 argument :: Parser Term
-argument = spaces *> (char '(' *> term <* char ')' <|> identifier) <* spaces
+argument =
+    spaces *> (
+        char '(' *> term <* char ')' <|>
+        CInt . read <$> many1 digit <|>
+        identifier
+    ) <* spaces
 
 identifier :: Parser Term
 identifier = Atom <$> many1 letter
 
 eval :: Env -> Term -> Term
+eval _ (CInt i) = foldl (flip ($)) (Atom "zero") $ replicate i (Atom "succ" `App`)
 eval e t@(Atom s) = fromMaybe t $ Map.lookup s e
 eval _ (Atom "i" `App` t)                    = t
 eval _ (Atom "k" `App` t `App` _)            = t

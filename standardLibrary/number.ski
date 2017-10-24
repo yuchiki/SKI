@@ -1,2 +1,5 @@
+let Z = Z
+let S = S
+let eval = s (s i (k S)) (k Z)
 let plus = s i (k succ)
-let mult x = s (k s) k
+let mult = s (k s) k
