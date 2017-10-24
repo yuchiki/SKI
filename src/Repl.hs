@@ -26,6 +26,7 @@ command =
 
 initRepl :: IO ()
 initRepl = do
+  hSetBuffering stdin LineBuffering
   putStrLn "    SKI 0.1.0.0"
   putStrLn "Type '?' to show help."
   repl $ readLibrary empty SKILibrary.stdlib
