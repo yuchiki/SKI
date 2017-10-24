@@ -1,12 +1,14 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 module Repl (repl, initRepl) where
+import qualified Control.Exception.Safe as Exception
 import           Control.Monad
-import           Core               (Env, Statement (..), empty, eval, parse,
-                                     showEnv, update)
+import           Core                   (Env, Statement (..), empty, eval,
+                                         parse, showEnv, update)
 import           Data.Either
 import qualified SKILibrary
 import           System.IO
 import           Text.Parsec
-import qualified Text.Parsec.String as ParsecS
+import qualified Text.Parsec.String     as ParsecS
 import           Util
 
 {- BNF
@@ -60,12 +62,27 @@ readStatement e input =
     Left _                 -> do
       putStrLn $ errStr "could not parse."
       repl e
+    Right (Import libname) -> openLibrary libname e
     Right (Assignment s t) -> do
       putStrLn $ concat [s, " = ", show t]
       repl $ update s t e
     Right (RawTerm t)      -> do
       mapM_ print $ saturateL (eval e) t
       repl e
+
+openLibrary :: String -> Env -> IO ()
+openLibrary libname e =
+  do
+    hLib <- openFile ("standardLibrary/" ++ libname ++ ".ski") ReadMode
+    contents <- hGetContents hLib
+    let newe = readLibrary e contents
+    putStrLn $ okStr $ libname ++ " loaded."
+    repl newe
+  `Exception.catch`
+  \(err:: Exception.IOException) -> do
+    putStrLn $ errStr $ "cannot open " ++ libname ++ "."
+    repl e
+
 
 saturate :: Eq a => (a -> a) -> a -> a
 saturate f t

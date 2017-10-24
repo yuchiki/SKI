@@ -1,4 +1,4 @@
-module Util (decorate, errStr, italic, trim) where
+module Util (decorate, errStr, italic, trim, okStr) where
 
 import           Data.Char (isSpace)
 
@@ -33,6 +33,9 @@ decorate a c s = concat ["\ESC[", show $ deAttribute a, ";", show $ deColor c, "
 
 errStr :: Decorator
 errStr = decorate Normal Red
+
+okStr :: Decorator
+okStr = decorate Normal Green
 
 italic :: Decorator
 italic = decorate Italic White

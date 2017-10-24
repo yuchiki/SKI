@@ -1,0 +1,2 @@
+let plus = s i (k succ)
+let mult x = s (k s) k

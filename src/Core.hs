@@ -10,7 +10,7 @@ import qualified Text.Parsec        as Parsec (parse)
 import           Text.Parsec.String
 
 type Prog = [Statement]
-data Statement = Assignment String Term | RawTerm Term deriving (Show)
+data Statement = Import String | Assignment String Term | RawTerm Term deriving (Show)
 
 data Term =
      Atom String
@@ -24,7 +24,8 @@ instance Show Term where
 
 {- BNF
     top ::= statement eof
-    statement ::= (asignment | term)
+    statement ::= (importLib | asignment | term)
+    importLib ::= 'import' identifier
     asignment ::= let identifier = term
     term ::= argument | term argument
     argument ::= identifer | (term)
@@ -49,7 +50,10 @@ top :: Parser Statement
 top = spaces *> statement <* eof
 
 statement :: Parser Statement
-statement = assignment <|> RawTerm <$> term
+statement = importLib <|> assignment <|> RawTerm <$> term
+
+importLib :: Parser Statement
+importLib = string "import" *> spaces *> ((\(Atom i) -> Import i) <$> identifier)
 
 assignment :: Parser Statement
 assignment = do
