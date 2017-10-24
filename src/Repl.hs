@@ -31,57 +31,64 @@ initRepl = do
   hSetBuffering stdin LineBuffering
   putStrLn "    SKI 0.1.0.0"
   putStrLn "Type '?' to show help."
-  repl $ readLibrary empty SKILibrary.stdlib
+  repl ([], readLibrary empty SKILibrary.stdlib)
 
 readLibrary :: Env -> String -> Env
 readLibrary e0 =
   foldl (\e (Assignment i t) ->  update i t e ) e0 . rights . map Core.parse . lines
 
-repl :: Env -> IO ()
-repl e = do
-  putStr "SKI>"
+type Libraries = [String]
+type ExecutionInfo = (Libraries, Env)
+
+prompt :: Libraries -> IO ()
+prompt ls = do
+  putStr . concat . foldr (\e a -> e : " " : a) ["SKI>"] $ ls
   hFlush stdout
+
+repl :: ExecutionInfo -> IO ()
+repl ei@(ls, e) = do
+  prompt ls
   input <- trim <$> getLine
-  when (null input) $ repl e
+  when (null input) $ repl ei
   case Text.Parsec.parse command "" input of
     Right Help -> do
       putStrLn "?                         : show help"
       putStrLn ":s                        : show definitions"
       putStrLn "<term>                    : evaluate term"
       putStrLn $ concat [italic "let ", "<identifier>", italic " = ", "<term> : define term"]
-      repl e
+      repl ei
     Right Show -> do
       putStr $ showEnv e
-      repl e
-    Right Statement -> readStatement e input
+      repl ei
+    Right Statement -> readStatement ei input
     Left _ -> Prelude.putStrLn $ errStr "Command parse error."
 
-readStatement :: Env -> String -> IO ()
-readStatement e input =
+readStatement :: ExecutionInfo -> String -> IO ()
+readStatement (ei@(ls, e)) input =
   case Core.parse input of
     Left _                 -> do
       putStrLn $ errStr "could not parse."
-      repl e
-    Right (Import libname) -> openLibrary libname e
+      repl ei
+    Right (Import libname) -> openLibrary libname ei
     Right (Assignment s t) -> do
       putStrLn $ concat [s, " = ", show t]
-      repl $ update s t e
+      repl (ls, update s t e)
     Right (RawTerm t)      -> do
       mapM_ print $ saturateL (eval e) t
-      repl e
+      repl ei
 
-openLibrary :: String -> Env -> IO ()
-openLibrary libname e =
+openLibrary :: String -> ExecutionInfo -> IO ()
+openLibrary libname (ei@(ls, e)) =
   do
     hLib <- openFile ("standardLibrary/" ++ libname ++ ".ski") ReadMode
     contents <- hGetContents hLib
     let newe = readLibrary e contents
     putStrLn $ okStr $ libname ++ " loaded."
-    repl newe
+    repl (libname : ls, newe)
   `Exception.catch`
   \(err:: Exception.IOException) -> do
     putStrLn $ errStr $ "cannot open " ++ libname ++ "."
-    repl e
+    repl ei
 
 
 saturate :: Eq a => (a -> a) -> a -> a
