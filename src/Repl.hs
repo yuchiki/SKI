@@ -3,6 +3,8 @@ import           Core               (Env, Statement (..), empty, eval, parse,
                                      update)
 import           System.IO
 
+import           Data.Either
+import qualified SKILibrary
 import           Text.Parsec
 import qualified Text.Parsec.String as ParsecS
 
@@ -17,7 +19,7 @@ command =
   spaces *>
   try (char '?' *> spaces *> eof ) *> return Help <|>
   try (string "help" *> spaces *> eof) *> return Help <|>
-  try (string ":s") *> spaces *> eof *> return Show <|>
+  try (string ":s" *> spaces *> eof) *> return Show <|>
   try (string ":show" *> spaces *> eof) *> return Show <|>
   return Statement
 
@@ -25,7 +27,13 @@ initRepl :: IO ()
 initRepl = do
   putStrLn "    SKI 0.1.0.0"
   putStrLn "Type '?' to show help."
-  repl empty
+  putStrLn SKILibrary.stdlib
+  print $ map Core.parse . lines $ SKILibrary.stdlib
+  repl $ readLibrary empty SKILibrary.stdlib
+
+readLibrary :: Env -> String -> Env
+readLibrary e0 =
+  foldl (\e (Assignment i t) ->  update i t e ) e0 . rights . map Core.parse . lines
 
 repl :: Env -> IO ()
 repl e = do

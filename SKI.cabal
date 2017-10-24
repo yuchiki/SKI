@@ -15,7 +15,7 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Core, Repl
+  exposed-modules:     Core, Repl, SKILibrary
   build-depends:       base >= 4.7 && < 5, parsec, containers
   default-language:    Haskell2010
 

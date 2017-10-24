@@ -10,7 +10,7 @@ import qualified Text.Parsec        as Parsec (parse)
 import           Text.Parsec.String
 
 type Prog = [Statement]
-data Statement = Assignment String Term | RawTerm Term
+data Statement = Assignment String Term | RawTerm Term deriving (Show)
 
 data Term =
      Atom String
@@ -43,7 +43,7 @@ parse :: String -> Either ParseError Statement
 parse = Parsec.parse top ""
 
 top :: Parser Statement
-top = statement <* eof
+top = spaces *> statement <* eof
 
 statement :: Parser Statement
 statement = assignment <|> RawTerm <$> term
