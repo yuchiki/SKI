@@ -6,13 +6,6 @@ stdlib =
     \let cp = s i i \n\
     \let rev = s (k (s i)) k \n\
 
-    \let if = i \n\
-    \let true = k \n\
-    \let false = k i \n\
-    \let not = s (s i (k f))(k t) \n\
-    \let or = s i (k t) \n\
-    \let and = s s (k (k f)) \n\
-
     \let zero = k i\n\
     \let succ = s (s (k s) k) \n\
     \let one = succ zero \n\

@@ -1,0 +1,6 @@
+let true = k
+let false = k i
+let not = s (s i (k f))(k t)
+let or = s i (k t)
+let and = s s (k (k f))
+let if = i
