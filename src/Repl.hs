@@ -55,7 +55,7 @@ repl ei@(ls, e) = do
       putStrLn "?                         : show help"
       putStrLn ":s                        : show definitions"
       putStrLn "<term>                    : evaluate term"
-      putStrLn $ concat [italic "let ", "<identifier>", italic " = ", "<term> : define term"]
+      putStrLn $ italic "let" @@@ "<identifier>" @@@ italic "=" @@@ "<term> : define term"
       repl ei
     Right Show -> do
       putStr $ showEnv e
@@ -71,7 +71,7 @@ readStatement (ei@(ls, e)) input =
       repl ei
     Right (Import libname) -> openLibrary libname ei
     Right (Assignment s t) -> do
-      putStrLn $ concat [s, " = ", show t]
+      putStrLn $ s @@ " = " @@ t
       repl (ls, update s t e)
     Right (RawTerm t)      -> do
       mapM_ print $ saturateL (eval e) t

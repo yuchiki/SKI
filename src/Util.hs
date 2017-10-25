@@ -1,4 +1,14 @@
-module Util (decorate, errStr, italic, trim, okStr) where
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FlexibleInstances         #-}
+{-# LANGUAGE GADTs                     #-}
+{-# LANGUAGE IncoherentInstances       #-}
+{-# LANGUAGE RankNTypes                #-}
+{-# LANGUAGE ScopedTypeVariables       #-}
+{-# LANGUAGE TypeOperators             #-}
+{-# LANGUAGE TypeSynonymInstances      #-}
+{-# LANGUAGE UndecidableInstances      #-}
+
+module Util (decorate, errStr, italic, trim, okStr, (@@), (@@@)) where
 
 import           Data.Char (isSpace)
 
@@ -43,3 +53,19 @@ italic = decorate Italic White
 trim :: String -> String
 trim =  f . f
     where f = reverse . dropWhile isSpace
+
+
+class Show a => Shon a where
+    shon :: a -> String
+    shon = show
+instance Shon String where
+    shon = id
+instance Show a => Shon a
+
+(@@) :: (Shon a, Shon b) => a -> b -> String
+x @@ y = shon x ++ shon y
+infixr 5 @@
+
+(@@@) :: (Shon a, Shon b) => a -> b -> String
+x @@@ y   = shon x ++ " " ++ shon y
+infixr 5 @@@

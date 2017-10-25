@@ -12,7 +12,7 @@ import           Text.Parsec.String
 type Prog = [Statement]
 data Statement = Import String | Assignment String Term | RawTerm Term deriving (Show)
 
-data Term = Atom String | CInt Int | App Term Term deriving (Eq)
+data Term = Atom {get :: String} | CInt Int | App Term Term deriving (Eq)
 
 instance Show Term where
     show (CInt i)          = show i
@@ -52,7 +52,7 @@ statement :: Parser Statement
 statement = importLib <|> assignment <|> RawTerm <$> term
 
 importLib :: Parser Statement
-importLib = string "import" *> spaces *> ((\(Atom i) -> Import i) <$> identifier)
+importLib = string "import" *> spaces *> ((Import . get) <$> identifier)
 
 assignment :: Parser Statement
 assignment = do
