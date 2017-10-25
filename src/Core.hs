@@ -18,6 +18,7 @@ instance Show Term where
     show (CInt i)          = show i
     show (Atom s)          = s
     show (t1 `App` Atom s) = show t1 ++ " " ++ s
+    show (t1 `App` CInt i) = show t1 ++ " " ++ show i
     show (t1 `App` t2)     = show t1 ++ " (" ++ show t2 ++ ")"
 
 {- BNF
