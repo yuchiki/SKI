@@ -8,6 +8,7 @@ import           Text.Parsec        (ParseError, char, digit, eof, letter, many,
                                      many1, spaces, string, (<|>))
 import qualified Text.Parsec        as Parsec (parse)
 import           Text.Parsec.String
+import           Util
 
 type Prog = [Statement]
 data Statement = Import String | Assignment String Term | RawTerm Term deriving (Show)
@@ -17,9 +18,9 @@ data Term = Atom {get :: String} | CInt Int | App Term Term deriving (Eq)
 instance Show Term where
     show (CInt i)          = show i
     show (Atom s)          = s
-    show (t1 `App` Atom s) = show t1 ++ " " ++ s
-    show (t1 `App` CInt i) = show t1 ++ " " ++ show i
-    show (t1 `App` t2)     = show t1 ++ " (" ++ show t2 ++ ")"
+    show (t1 `App` Atom s) = t1 @@@ s
+    show (t1 `App` CInt i) = t1 @@@ i
+    show (t1 `App` t2)     = t1 @@@ "(" @@ t2 @@ ")"
 
 {- BNF
     top ::= statement eof
@@ -40,7 +41,7 @@ empty :: Env
 empty = Map.empty
 
 showEnv :: Env -> String
-showEnv e = concatMap (\(i, t) -> concat [pad 10 i, " = ", show t, "\n"] ) $ Map.toList e
+showEnv = concatMap (\(i, t) -> pad 10 i @@@ "=" @@@ t @@ "\n") . Map.toList
 
 parse :: String -> Either ParseError Statement
 parse = Parsec.parse top ""
@@ -79,12 +80,9 @@ identifier :: Parser Term
 identifier = Atom <$> many1 letter
 
 eval :: Env -> Term -> Term
-eval _ (CInt i) = foldl (flip ($)) (Atom "zero") $ replicate i (Atom "succ" `App`)
+eval _ (CInt i) = iterate (Atom "succ" `App`) (Atom "zero") !! i
 eval e t@(Atom s) = fromMaybe t $ Map.lookup s e
 eval _ (Atom "i" `App` t)                    = t
 eval _ (Atom "k" `App` t `App` _)            = t
 eval _ (Atom "s" `App` t1 `App` t2 `App` t3) = t1 `App` t3 `App` (t2 `App` t3)
 eval e (t1 `App` t2)                         = if eval e t1 /= t1 then eval e t1 `App` t2 else t1 `App` eval e t2
-
-pad :: Int -> String -> String
-pad i s = s ++ replicate (i - length s) ' '

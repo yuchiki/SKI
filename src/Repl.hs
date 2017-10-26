@@ -83,7 +83,7 @@ openLibrary libname (ei@(ls, e)) =
     hLib <- openFile ("standardLibrary/" ++ libname ++ ".ski") ReadMode
     contents <- hGetContents hLib
     let newe = readLibrary e contents
-    putStrLn $ okStr $ libname ++ " loaded."
+    putStrLn . okStr $ libname @@@ "loaded."
     repl (libname : ls, newe)
   `Exception.catch`
   \(_ :: Exception.IOException) -> do

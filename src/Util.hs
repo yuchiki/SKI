@@ -8,7 +8,7 @@
 {-# LANGUAGE TypeSynonymInstances      #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
-module Util (decorate, errStr, italic, trim, okStr, (@@), (@@@), saturate) where
+module Util (decorate, errStr, italic, trim, okStr, (@@), (@@@), saturate, pad) where
 
 import           Data.Char (isSpace)
 
@@ -61,6 +61,10 @@ class Show a => Shon a where
 instance Shon String where
     shon = id
 instance Show a => Shon a
+
+
+pad :: Int -> String -> String
+pad i s = s ++ replicate (i - length s) ' '
 
 (@@) :: (Shon a, Shon b) => a -> b -> String
 x @@ y = shon x ++ shon y
