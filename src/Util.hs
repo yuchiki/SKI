@@ -8,7 +8,7 @@
 {-# LANGUAGE TypeSynonymInstances      #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
-module Util (decorate, errStr, italic, trim, okStr, (@@), (@@@)) where
+module Util (decorate, errStr, italic, trim, okStr, (@@), (@@@), saturate) where
 
 import           Data.Char (isSpace)
 
@@ -69,3 +69,12 @@ infixr 5 @@
 (@@@) :: (Shon a, Shon b) => a -> b -> String
 x @@@ y   = shon x ++ " " ++ shon y
 infixr 5 @@@
+
+isFP :: Eq a => (a -> a) -> a -> Bool
+isFP f x  = f x == x
+
+takeWhileP :: (a -> Bool) -> [a] -> [a]
+takeWhileP p = foldr (\x xs-> if p x then x : xs else [x]) []
+
+saturate :: Eq a => (a -> a) -> a -> [a]
+saturate f = takeWhileP (not . isFP f) . iterate f

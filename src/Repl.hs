@@ -71,10 +71,10 @@ readStatement (ei@(ls, e)) input =
       repl ei
     Right (Import libname) -> openLibrary libname ei
     Right (Assignment s t) -> do
-      putStrLn $ s @@ " = " @@ t
+      putStrLn $ s @@@ "=" @@@ t
       repl (ls, update s t e)
     Right (RawTerm t)      -> do
-      mapM_ print $ saturateL (eval e) t
+      mapM_ print $ saturate (eval e) t
       repl ei
 
 openLibrary :: String -> ExecutionInfo -> IO ()
@@ -86,18 +86,6 @@ openLibrary libname (ei@(ls, e)) =
     putStrLn $ okStr $ libname ++ " loaded."
     repl (libname : ls, newe)
   `Exception.catch`
-  \(err:: Exception.IOException) -> do
+  \(_ :: Exception.IOException) -> do
     putStrLn $ errStr $ "cannot open " ++ libname ++ "."
     repl ei
-
-
-saturate :: Eq a => (a -> a) -> a -> a
-saturate f t
-  |  f t == t = t
-  | otherwise = saturate f (f t)
-
-saturateL :: Eq a => (a -> a) -> a -> [a]
-saturateL f t
-  | f t == t = [t]
-  | otherwise =  t : saturateL f (f t)
-
