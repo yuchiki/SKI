@@ -71,7 +71,7 @@ x @@ y = shon x ++ shon y
 infixr 5 @@
 
 (@@@) :: (Shon a, Shon b) => a -> b -> String
-x @@@ y   = shon x ++ " " ++ shon y
+x @@@ y   = x @@ " " @@ y
 infixr 5 @@@
 
 isFP :: Eq a => (a -> a) -> a -> Bool
