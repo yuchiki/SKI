@@ -79,6 +79,9 @@ argument =
 identifier :: Parser Term
 identifier = Atom <$> many1 letter
 
+-- |
+-- >>> Atom "a"
+-- a
 eval :: Env -> Term -> Term
 eval _ (CInt i) = iterate (Atom "succ" `App`) (Atom "zero") !! i
 eval e t@(Atom s) = fromMaybe t $ Map.lookup s e
