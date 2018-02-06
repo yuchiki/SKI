@@ -55,6 +55,7 @@ repl ei@(ls, e) = do
       putStrLn "?                         : show help"
       putStrLn ":s                        : show definitions"
       putStrLn "<term>                    : evaluate term"
+      putStrLn $ italic "import" @@@ "<library>          : import library"
       putStrLn $ italic "let" @@@ "<identifier>" @@@ italic "=" @@@ "<term> : define term"
       repl ei
     Right Show -> do
