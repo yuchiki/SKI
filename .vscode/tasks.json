@@ -6,9 +6,18 @@
         "kind" : "build",
         "isDefault": true
       },
-      "taskName": "build",
+      "label": "build",
       "type": "shell",
       "command": "stack build; stack exec SKI-exe"
+    },
+    {
+      "group": {
+        "kind" : "test",
+        "isDefault": true
+      },
+      "label": "test",
+      "type": "shell",
+      "command": "stack build; stack test"
     }
   ]
 }
