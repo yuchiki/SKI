@@ -1,5 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell, QuasiQuotes #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 
 module Repl (repl, initRepl) where
@@ -13,8 +13,6 @@ import           System.IO
 import           Text.Parsec
 import qualified Text.Parsec.String     as ParsecS
 import           Util
-import Language.Haskell.TH
-import Language.Haskell.TH.Quote
 import HereDoc(heredoc)
 
 initRepl :: IO ()
