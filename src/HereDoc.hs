@@ -1,7 +1,5 @@
 module HereDoc(heredoc) where
 
-{-# LANGUAGE TemplateHaskell, QuasiQuotes #-}
-
 import Language.Haskell.TH
 import Language.Haskell.TH.Quote
 
