@@ -9,7 +9,7 @@ main :: IO ()
 main = hspec spec
 
 spec :: Spec
-spec = do
+spec =
     describe "heredoc" $ do
         it "should parse 4-indented heredocuments" $
             sampleWith4Indents `shouldBe` sample
