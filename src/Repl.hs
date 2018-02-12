@@ -25,22 +25,22 @@ initRepl = do
     repl ([], readLibrary empty SKILibrary.stdlib)
 
 repl :: Info -> IO ()
-repl ei@(ls, e) = do
+repl info@(ls, e) = do
     prompt ls
     input <- trim <$> getLine
-    when (null input) $ repl ei
+    when (null input) $ repl info
     newEi <- case Text.Parsec.parse command "" input of
         Right Help -> do
             putStr helpMessage
-            return ei
+            return info
         Right Show -> do
             putStr $ showEnv e
-            return ei
-        Right Statement -> readStatement ei input
+            return info
+        Right Statement -> readStatement info input
         Left _ -> do
             putStrLn $ errStr "Command parse error."
             putStrLn $ errStr "This message suggests an internal error in our command parser."
-            return ei
+            return info
     repl newEi
 
 readLibrary :: Env -> String -> Env
@@ -69,6 +69,11 @@ readStatement (ei@(ls, e)) input =
             mapM_ print $ saturate (eval e) t
             return ei
 
+-- |
+-- >>> info <- openLibrary "sampleLib" ([], empty)
+-- ...
+-- >>>info
+-- (["sampleLib"],fromList [("plus",s i (k succ))])
 openLibrary :: FileName -> Info -> IO Info
 openLibrary libname (info@(ls, env)) = do
         contents <- hGetContents =<< openFile (convertToLPath libname) ReadMode
