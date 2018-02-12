@@ -14,6 +14,7 @@ import           System.IO
 import           Text.Parsec
 import qualified Text.Parsec.String     as ParsecS
 import           Util
+import Data.List(intercalate)
 import Text.Printf(printf)
 import HereDoc(heredoc)
 
@@ -27,7 +28,7 @@ initRepl = do
 
 repl :: Info -> IO ()
 repl info@(ls, e) = do
-    prompt ls
+    putStrF $ prompt ls
     input <- trim <$> getLine
     when (null input) $ repl info
     newEi <- case Text.Parsec.parse command "" input of
@@ -51,10 +52,11 @@ readLibrary env =
 type Libraries = [String]
 type Info = (Libraries, Env)
 
-prompt :: Libraries -> IO ()
-prompt ls = do
-    putStr . concat . foldr (\e a -> e : " " : a) ["SKI>"] $ ls
-    hFlush stdout
+-- |
+-- >>> prompt ["libA", "libB", "libC"]
+-- "libA libB libC SKI>"
+prompt :: Libraries -> String
+prompt = unwords . (++ ["SKI>"])
 
 readStatement :: Info -> String -> IO Info
 readStatement (ei@(ls, e)) input =

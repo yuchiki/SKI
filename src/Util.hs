@@ -8,9 +8,10 @@
 {-# LANGUAGE TypeSynonymInstances      #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
-module Util (decorate, errStr, italic, trim, okStr, (@@), (@@@), saturate, pad) where
+module Util (decorate, errStr, italic, trim, okStr, (@@), (@@@), saturate, pad, putStrF) where
 
 import           Data.Char (isSpace)
+import           System.IO(hFlush, stdout)
 
 type Decorator = String -> String
 
@@ -73,6 +74,9 @@ infixr 5 @@
 (@@@) :: (Shon a, Shon b) => a -> b -> String
 x @@@ y   = x @@ " " @@ y
 infixr 5 @@@
+
+putStrF :: String -> IO ()
+putStrF s = putStr s *> hFlush stdout 
 
 isFP :: Eq a => (a -> a) -> a -> Bool
 isFP f x  = f x == x
