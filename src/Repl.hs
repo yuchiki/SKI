@@ -21,15 +21,28 @@ initRepl = do
     putStr initialMessage
     repl ([], readLibrary empty SKILibrary.stdlib)
 
-initialMessage :: String
-initialMessage = [heredoc|
-    SKI 0.1.0.0
-    Type '?' to show help.
-|]
+repl :: ExecutionInfo -> IO ()
+repl ei@(ls, e) = do
+    prompt ls
+    input <- trim <$> getLine
+    when (null input) $ repl ei
+    newEi <- case Text.Parsec.parse command "" input of
+        Right Help -> do
+            putStr helpMessage
+            return ei
+        Right Show -> do
+            putStr $ showEnv e
+            return ei
+        Right Statement -> readStatement ei input
+        Left _ -> do
+            putStrLn $ errStr "Command parse error."
+            putStrLn $ errStr "This message suggests an internal error is happening."
+            return ei
+    repl newEi
 
 readLibrary :: Env -> String -> Env
-readLibrary e0 =
-    foldl (\e (Assignment i t) ->  update i t e ) e0 . rights . map Core.parse . lines
+readLibrary env =
+    foldl (\e (Assignment i t) ->  update i t e ) env . rights . map Core.parse . lines
 
 type Libraries = [String]
 type ExecutionInfo = (Libraries, Env)
@@ -39,47 +52,32 @@ prompt ls = do
     putStr . concat . foldr (\e a -> e : " " : a) ["SKI>"] $ ls
     hFlush stdout
 
-repl :: ExecutionInfo -> IO ()
-repl ei@(ls, e) = do
-    prompt ls
-    input <- trim <$> getLine
-    when (null input) $ repl ei
-    case Text.Parsec.parse command "" input of
-        Right Help -> do
-            putStr helpMessage
-            repl ei
-        Right Show -> do
-            putStr $ showEnv e
-            repl ei
-        Right Statement -> readStatement ei input
-        Left _ -> Prelude.putStrLn $ errStr "Command parse error."
-
-readStatement :: ExecutionInfo -> String -> IO ()
+readStatement :: ExecutionInfo -> String -> IO ExecutionInfo
 readStatement (ei@(ls, e)) input =
     case Core.parse input of
         Left _                 -> do
             putStrLn $ errStr "could not parse."
-            repl ei
+            return ei
         Right (Import libname) -> openLibrary libname ei
         Right (Assignment s t) -> do
             putStrLn $ s @@@ "=" @@@ t
-            repl (ls, update s t e)
+            return (ls, update s t e)
         Right (RawTerm t)      -> do
             mapM_ print $ saturate (eval e) t
-            repl ei
+            return ei
 
-openLibrary :: String -> ExecutionInfo -> IO ()
+openLibrary :: String -> ExecutionInfo -> IO ExecutionInfo
 openLibrary libname (ei@(ls, e)) =
     do
         hLib <- openFile ("standardLibrary/" ++ libname ++ ".ski") ReadMode
         contents <- hGetContents hLib
         let newe = readLibrary e contents
         putStrLn . okStr $ libname @@@ "loaded."
-        repl (libname : ls, newe)
+        return (libname : ls, newe)
     `Exception.catch`
     \(_ :: Exception.IOException) -> do
         putStrLn $ errStr $ "cannot open " ++ libname ++ "."
-        repl ei
+        return ei
 
 
 {- BNF
@@ -96,6 +94,12 @@ command =
     try (string ":s" *> spaces *> eof) *> return Show <|>
     try (string ":show" *> spaces *> eof) *> return Show <|>
     return Statement
+
+initialMessage :: String
+initialMessage = [heredoc|
+    SKI 0.1.0.0
+    Type '?' to show help.
+|]
 
 helpMessage :: String
 helpMessage = [heredoc|
