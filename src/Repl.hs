@@ -3,7 +3,7 @@
 {-# LANGUAGE TemplateHaskell #-} -- this line is needed for Doctests. The reason must be researched later.
 
 module Repl (repl, initRepl) where
-import qualified Control.Exception.Safe as Exception
+import Control.Exception.Safe(catch, IOException)
 import           Control.Monad
 import           Core                   (Env, Statement (..), empty, eval,
                                          parse, showEnv, update)
@@ -13,7 +13,10 @@ import           System.IO
 import           Text.Parsec
 import qualified Text.Parsec.String     as ParsecS
 import           Util
+import Text.Printf(printf)
 import HereDoc(heredoc)
+
+type FileName = String
 
 initRepl :: IO ()
 initRepl = do
@@ -36,7 +39,7 @@ repl ei@(ls, e) = do
         Right Statement -> readStatement ei input
         Left _ -> do
             putStrLn $ errStr "Command parse error."
-            putStrLn $ errStr "This message suggests an internal error is happening."
+            putStrLn $ errStr "This message suggests an internal error in our command parser."
             return ei
     repl newEi
 
@@ -45,14 +48,14 @@ readLibrary env =
     foldl (\e (Assignment i t) ->  update i t e ) env . rights . map Core.parse . lines
 
 type Libraries = [String]
-type ExecutionInfo = (Libraries, Env)
+type Info = (Libraries, Env)
 
 prompt :: Libraries -> IO ()
 prompt ls = do
     putStr . concat . foldr (\e a -> e : " " : a) ["SKI>"] $ ls
     hFlush stdout
 
-readStatement :: ExecutionInfo -> String -> IO ExecutionInfo
+readStatement :: Info -> String -> IO Info
 readStatement (ei@(ls, e)) input =
     case Core.parse input of
         Left _                 -> do
@@ -66,19 +69,18 @@ readStatement (ei@(ls, e)) input =
             mapM_ print $ saturate (eval e) t
             return ei
 
-openLibrary :: String -> ExecutionInfo -> IO ExecutionInfo
-openLibrary libname (ei@(ls, e)) =
-    do
-        hLib <- openFile ("standardLibrary/" ++ libname ++ ".ski") ReadMode
-        contents <- hGetContents hLib
-        let newe = readLibrary e contents
-        putStrLn . okStr $ libname @@@ "loaded."
-        return (libname : ls, newe)
-    `Exception.catch`
-    \(_ :: Exception.IOException) -> do
-        putStrLn $ errStr $ "cannot open " ++ libname ++ "."
-        return ei
+openLibrary :: FileName -> Info -> IO Info
+openLibrary libname (info@(ls, env)) = do
+        contents <- hGetContents =<< openFile (convertToLPath libname) ReadMode
+        putStrLn . okStr $ printf "%s loaded." libname
+        return (libname : ls, readLibrary env contents)
+    `catch`
+    \(_ :: IOException) -> do
+        putStrLn . errStr $ printf "cannot open %s." libname
+        return info
 
+convertToLPath:: String -> String
+convertToLPath = printf "standardLibrary/%s.ski"
 
 {- BNF
   ? | help | :s | :show | statement
