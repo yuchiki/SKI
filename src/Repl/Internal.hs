@@ -24,7 +24,7 @@ initRepl :: IO ()
 initRepl = do
     hSetBuffering stdin LineBuffering
     putStr initialMessage
-    repl ([], readLibrary empty SKILibrary.stdlib)
+    repl $ addLibrary "SKI" SKILibrary.stdlib emptyInfo
 
 repl :: Info -> IO ()
 repl info@(ls, e) = do
@@ -45,6 +45,9 @@ repl info@(ls, e) = do
             return info
     repl newInfo
 
+addLibrary :: String -> String -> Info -> Info
+addLibrary name contents (ls, env) = (name : ls, readLibrary env contents)
+
 readLibrary :: Env -> String -> Env
 readLibrary env =
     foldl (\e (Assignment i t) ->  update i t e ) env . rights . map Core.parse . lines
@@ -59,10 +62,10 @@ updateAssign :: String -> Term -> Info -> Info
 updateAssign s t (ls, env) = (s:ls, update s t env)
 
 -- |
--- >>> prompt ["libA", "libB", "libC"]
+-- >>> prompt ["libA", "libB", "libC", "SKI"]
 -- "libA libB libC SKI>"
 prompt :: Libraries -> String
-prompt = unwords . (++ ["SKI>"])
+prompt = (++ ">") . unwords
 
 readStatement :: Info -> String -> IO Info
 readStatement (ei@(_, e)) input =
@@ -72,7 +75,7 @@ readStatement (ei@(_, e)) input =
             return ei
         Right (Import libname) -> openLibrary libname ei
         Right (Assignment s t) -> do
-            putStrLn $ s @@@ "=" @@@ t
+            putStrLn $ printf "%s = %s" (show s) (show t)
             return $ updateAssign s t ei
         Right (RawTerm t)      -> do
             mapM_ print $ saturate (eval e) t
