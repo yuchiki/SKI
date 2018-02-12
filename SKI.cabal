@@ -21,7 +21,7 @@ custom-setup
 library
   hs-source-dirs:      src
   exposed-modules:     Core, Core.Internal, Repl, Repl.Internal, SKILibrary, Util, HereDoc
-  build-depends:       base >= 4.7 && < 5, parsec, containers, safe-exceptions, directory, template-haskell
+  build-depends:       base >= 4.7 && < 5, parsec, containers, safe-exceptions, directory, template-haskell, monad-loops
   default-language:    Haskell2010
 
 executable SKI-exe

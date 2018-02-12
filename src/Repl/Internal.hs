@@ -17,6 +17,7 @@ import           Util
 import Data.List(intercalate)
 import Text.Printf(printf)
 import HereDoc(heredoc)
+import Control.Monad.Loops
 
 type FileName = String
 
@@ -24,14 +25,14 @@ initRepl :: IO ()
 initRepl = do
     hSetBuffering stdin LineBuffering
     putStr initialMessage
-    repl $ addLibrary "SKI" SKILibrary.stdlib emptyInfo
+    iterateM_ repl $ addLibrary "SKI" SKILibrary.stdlib emptyInfo
 
-repl :: Info -> IO ()
+repl :: Info -> IO Info
 repl info@(ls, e) = do
     putStrF $ prompt ls
     input <- trim <$> getLine
-    when (null input) $ repl info
-    newInfo <- case Text.Parsec.parse command "" input of
+    if null input then return info
+    else case Text.Parsec.parse command "" input of
         Right Help -> do
             putStr helpMessage
             return info
@@ -43,7 +44,6 @@ repl info@(ls, e) = do
             putStrLn $ errStr "Command parse error."
             putStrLn $ errStr "This message suggests an internal error in our command parser."
             return info
-    repl newInfo
 
 addLibrary :: String -> String -> Info -> Info
 addLibrary name contents (ls, env) = (name : ls, readLibrary env contents)
@@ -59,7 +59,7 @@ emptyInfo :: Info
 emptyInfo = ([], empty)
 
 updateAssign :: String -> Term -> Info -> Info
-updateAssign s t (ls, env) = (s:ls, update s t env)
+updateAssign s t (ls, env) = (ls, update s t env)
 
 -- |
 -- >>> prompt ["libA", "libB", "libC", "SKI"]
@@ -75,7 +75,7 @@ readStatement (ei@(_, e)) input =
             return ei
         Right (Import libname) -> openLibrary libname ei
         Right (Assignment s t) -> do
-            putStrLn $ printf "%s = %s" (show s) (show t)
+            putStrLn $ printf "%s = %s" s (show t)
             return $ updateAssign s t ei
         Right (RawTerm t)      -> do
             mapM_ print $ saturate (eval e) t
@@ -87,10 +87,10 @@ readStatement (ei@(_, e)) input =
 -- >>>info
 -- (["sampleLib"],fromList [("plus",s i (k succ))])
 openLibrary :: FileName -> Info -> IO Info
-openLibrary libname (info@(ls, env)) = do
+openLibrary libname info = do
         contents <- hGetContents =<< openFile (convertToLPath libname) ReadMode
         putStrLn . okStr $ printf "%s loaded." libname
-        return (libname : ls, readLibrary env contents)
+        return $ addLibrary libname contents info
     `catch`
     \(_ :: IOException) -> do
         putStrLn . errStr $ printf "cannot open %s." libname
