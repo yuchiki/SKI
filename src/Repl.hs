@@ -24,7 +24,7 @@ initRepl = do
     putStr initialMessage
     repl ([], readLibrary empty SKILibrary.stdlib)
 
-repl :: ExecutionInfo -> IO ()
+repl :: Info -> IO ()
 repl ei@(ls, e) = do
     prompt ls
     input <- trim <$> getLine
