@@ -20,6 +20,8 @@ import HereDoc(heredoc)
 import Control.Monad.Loops
 
 type FileName = String
+type Libraries = [String]
+type Info = (Libraries, Env)
 
 initRepl :: IO ()
 initRepl = do
@@ -47,41 +49,19 @@ repl info@(ls, e) = do
             |]
             return info
 
-addLibrary :: String -> String -> Info -> Info
-addLibrary name contents (ls, env) = (name : ls, readLibrary env contents)
-
-readLibrary :: Env -> String -> Env
-readLibrary env =
-    foldl (\e (Assignment i t) ->  update i t e ) env . rights . map Core.parse . lines
-
-type Libraries = [String]
-type Info = (Libraries, Env)
-
-emptyInfo :: Info
-emptyInfo = ([], empty)
-
-updateAssign :: String -> Term -> Info -> Info
-updateAssign s t (ls, env) = (ls, update s t env)
-
--- |
--- >>> prompt ["libA", "libB", "libC", "SKI"]
--- "libA libB libC SKI>"
-prompt :: Libraries -> String
-prompt = (++ ">") . unwords
-
 readStatement :: Info -> String -> IO Info
-readStatement (ei@(_, e)) input =
+readStatement (info@(_, env)) input =
     case Core.parse input of
         Left _                 -> do
             putStrLn $ errStr "could not parse."
-            return ei
-        Right (Import libname) -> openLibrary libname ei
+            return info
+        Right (Import libname) -> openLibrary libname info
         Right (Assignment s t) -> do
             putStrLn $ printf "%s = %s" s (show t)
-            return $ updateAssign s t ei
+            return $ updateAssign s t info
         Right (RawTerm t)      -> do
-            mapM_ print $ saturate (eval e) t
-            return ei
+            mapM_ print $ saturate (eval env) t
+            return info
 
 -- |
 -- >>> info <- openLibrary "sampleLib" ([], empty)
@@ -97,6 +77,26 @@ openLibrary libname info = do
     \(_ :: IOException) -> do
         putStrLn . errStr $ printf "cannot open %s." libname
         return info
+
+emptyInfo :: Info
+emptyInfo = ([], empty)
+
+updateAssign :: String -> Term -> Info -> Info
+updateAssign s t (ls, env) = (ls, update s t env)
+
+addLibrary :: String -> String -> Info -> Info
+addLibrary name contents (ls, env) = (name : ls, readLibrary env contents)
+
+readLibrary :: Env -> String -> Env
+readLibrary env =
+    foldl (\e (Assignment i t) ->  update i t e ) env . rights . map Core.parse . lines
+
+
+-- |
+-- >>> prompt ["libA", "libB", "libC", "SKI"]
+-- "libA libB libC SKI>"
+prompt :: Libraries -> String
+prompt = (++ ">") . unwords
 
 convertToLPath:: String -> String
 convertToLPath = printf "standardLibrary/%s.ski"
