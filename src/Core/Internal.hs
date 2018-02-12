@@ -7,6 +7,8 @@ import           Text.Parsec        (ParseError, char, digit, eof, letter, many,
 import qualified Text.Parsec        as Parsec (parse)
 import           Text.Parsec.String
 import           Util
+import Text.Printf(printf)
+import Control.Arrow(second)
 
 type Prog = [Statement]
 data Statement = Import String | Assignment String Term | RawTerm Term deriving (Show)
@@ -39,7 +41,7 @@ empty :: Env
 empty = Map.empty
 
 showEnv :: Env -> String
-showEnv = concatMap (\(i, t) -> pad 10 i @@@ "=" @@@ t @@ "\n") . Map.toList
+showEnv = concatMap (uncurry (printf "%10s=%s\n") . second show) . Map.toList
 
 parse :: String -> Either ParseError Statement
 parse = Parsec.parse top ""
