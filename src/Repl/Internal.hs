@@ -7,7 +7,7 @@ module Repl.Internal where
 import Control.Exception.Safe(catch, IOException)
 import           Control.Monad
 import           Core                   (Env, Statement (..), empty, eval,
-                                         parse, showEnv, update)
+                                         parse, showEnv, update, Term)
 import           Data.Either
 import qualified SKILibrary
 import           System.IO
@@ -31,7 +31,7 @@ repl info@(ls, e) = do
     putStrF $ prompt ls
     input <- trim <$> getLine
     when (null input) $ repl info
-    newEi <- case Text.Parsec.parse command "" input of
+    newInfo <- case Text.Parsec.parse command "" input of
         Right Help -> do
             putStr helpMessage
             return info
@@ -43,7 +43,7 @@ repl info@(ls, e) = do
             putStrLn $ errStr "Command parse error."
             putStrLn $ errStr "This message suggests an internal error in our command parser."
             return info
-    repl newEi
+    repl newInfo
 
 readLibrary :: Env -> String -> Env
 readLibrary env =
@@ -52,6 +52,12 @@ readLibrary env =
 type Libraries = [String]
 type Info = (Libraries, Env)
 
+emptyInfo :: Info
+emptyInfo = ([], empty)
+
+updateAssign :: String -> Term -> Info -> Info
+updateAssign s t (ls, env) = (s:ls, update s t env)
+
 -- |
 -- >>> prompt ["libA", "libB", "libC"]
 -- "libA libB libC SKI>"
@@ -59,7 +65,7 @@ prompt :: Libraries -> String
 prompt = unwords . (++ ["SKI>"])
 
 readStatement :: Info -> String -> IO Info
-readStatement (ei@(ls, e)) input =
+readStatement (ei@(_, e)) input =
     case Core.parse input of
         Left _                 -> do
             putStrLn $ errStr "could not parse."
@@ -67,7 +73,7 @@ readStatement (ei@(ls, e)) input =
         Right (Import libname) -> openLibrary libname ei
         Right (Assignment s t) -> do
             putStrLn $ s @@@ "=" @@@ t
-            return (ls, update s t e)
+            return $ updateAssign s t ei
         Right (RawTerm t)      -> do
             mapM_ print $ saturate (eval e) t
             return ei
