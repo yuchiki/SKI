@@ -36,7 +36,7 @@ test-suite SKI-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             Spec.hs
-  build-depends:       base
+  build-depends:       base, containers
                      , hspec
                      , SKI
   other-modules:       HereDocSpec
@@ -47,7 +47,7 @@ test-suite doctests
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test, src
   main-is:             doctests.hs
-  build-depends:       base
+  build-depends:       base, containers
                      , doctest
                      , QuickCheck
                      , SKI
