@@ -3,16 +3,16 @@
   "tasks": [
     {
       "group": {
-        "kind" : "build",
+        "kind": "build",
         "isDefault": true
       },
       "label": "build",
       "type": "shell",
-      "command": "stack build; stack exec SKI-exe"
+      "command": "stack build"
     },
     {
       "group": {
-        "kind" : "test",
+        "kind": "test",
         "isDefault": true
       },
       "label": "test",
