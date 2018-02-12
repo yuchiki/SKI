@@ -41,8 +41,10 @@ repl info@(ls, e) = do
             return info
         Right Statement -> readStatement info input
         Left _ -> do
-            putStrLn $ errStr "Command parse error."
-            putStrLn $ errStr "This message suggests an internal error in our command parser."
+            putStr . errStr $ [heredoc|
+                Command parse error.
+                This message suggests an internal error in our command parser.
+            |]
             return info
 
 addLibrary :: String -> String -> Info -> Info
