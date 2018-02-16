@@ -1,11 +1,10 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE TemplateHaskell #-} -- this line is needed for Doctests. The reason must be researched later.
+--{-# LANGUAGE TemplateHaskell #-} -- this line is needed for Doctests. The reason must be researched later.
 
 module Repl.Internal where
 
 import Control.Exception.Safe(catch, IOException)
-import           Control.Monad
 import           Core                   (Env, Statement (..), empty, eval,
                                          parse, showEnv, update, Term)
 import           Data.Either
@@ -14,20 +13,21 @@ import           System.IO
 import           Text.Parsec
 import qualified Text.Parsec.String     as ParsecS
 import           Util
-import Data.List(intercalate)
 import Text.Printf(printf)
 import HereDoc(heredoc)
 import Control.Monad.Loops
+import Data.Maybe(fromJust)
 
 type FileName = String
 type Libraries = [String]
 type Info = (Libraries, Env)
 
+
 initRepl :: IO ()
 initRepl = do
     hSetBuffering stdin LineBuffering
     putStr initialMessage
-    iterateM_ repl $ addLibrary "SKI" SKILibrary.stdlib emptyInfo
+    iterateM_ repl . fromJust $  addLibrary "SKI" SKILibrary.stdlib emptyInfo
 
 repl :: Info -> IO Info
 repl info@(ls, e) = do
@@ -71,8 +71,14 @@ readStatement (info@(_, env)) input =
 openLibrary :: FileName -> Info -> IO Info
 openLibrary libname info = do
         contents <- hGetContents =<< openFile (convertToLPath libname) ReadMode
-        putStrLn . okStr $ printf "%s loaded." libname
-        return $ addLibrary libname contents info
+        let parseResult = addLibrary libname contents info 
+        case  parseResult of
+            Just newInfo -> do
+                putStrLn . okStr $ printf "%s loaded." libname
+                return newInfo
+            Nothing -> do
+                putStrLn . errStr $ printf "grammatical error."
+                return info
     `catch`
     \(_ :: IOException) -> do
         putStrLn . errStr $ printf "cannot open %s." libname
@@ -84,12 +90,14 @@ emptyInfo = ([], empty)
 updateAssign :: String -> Term -> Info -> Info
 updateAssign s t (ls, env) = (ls, update s t env)
 
-addLibrary :: String -> String -> Info -> Info
-addLibrary name contents (ls, env) = (name : ls, readLibrary env contents)
+addLibrary :: String -> String -> Info -> Maybe Info
+addLibrary name contents (ls, env) = readLibrary env contents >>= \x -> Just (name : ls, x)
 
-readLibrary :: Env -> String -> Env
+-- todo: Error check
+-- todo: Merge withb repl system
+readLibrary :: Env -> String -> Maybe Env
 readLibrary env =
-    foldl (\e (Assignment i t) ->  update i t e ) env . rights . map Core.parse . lines
+    Just . foldl (\e (Assignment i t) ->  update i t e ) env . rights . map Core.parse . lines
 
 
 -- |

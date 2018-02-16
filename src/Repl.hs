@@ -1,5 +1,4 @@
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-} -- this line is needed for Doctests. The reason must be researched later.
 
 module Repl (repl, initRepl) where

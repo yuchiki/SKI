@@ -2,7 +2,7 @@ module Core.Internal where
 
 import qualified Data.Map           as Map
 import           Data.Maybe         (fromMaybe)
-import           Text.Parsec        (ParseError, char, digit, eof, letter, many,
+import           Text.Parsec        (ParseError, char, digit, eof, letter,
                                      many1, spaces, string, (<|>))
 import qualified Text.Parsec        as Parsec (parse)
 import           Text.Parsec.String
