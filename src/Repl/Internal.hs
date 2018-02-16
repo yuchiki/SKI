@@ -74,10 +74,10 @@ openLibrary libname info = do
         let parseResult = addLibrary libname contents info 
         case  parseResult of
             Just newInfo -> do
-                putStrLn . okStr $ printf "%s loaded." libname
+                putOkStrLn $ printf "%s loaded." libname
                 return newInfo
             Nothing -> do
-                putStrLn . errStr $ printf "grammatical error."
+                putErrStrLn $ printf "grammatical error."
                 return info
     `catch`
     \(_ :: IOException) -> do

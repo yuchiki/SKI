@@ -16,7 +16,7 @@ spec :: Spec
 spec =
     describe "readLibrary" $
         it "should parse texts only with assignments." $
-            readLibrary empty sampleLibrary `shouldBe`  Map.singleton "abc" (Atom "a" `App` (Atom "b" `App` Atom "c"))
+            readLibrary empty sampleLibrary `shouldBe`  Just (Map.singleton "abc" (Atom "a" `App` (Atom "b" `App` Atom "c")))
 
 sampleLibrary :: String
 sampleLibrary = [heredoc|

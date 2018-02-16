@@ -8,10 +8,10 @@
 {-# LANGUAGE TypeSynonymInstances      #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
-module Util (decorate, errStr, italic, trim, okStr, (@@), (@@@), saturate, pad, putStrF) where
+module Util (decorate, errStr, italic, trim, okStr, (@@), (@@@), saturate, pad, putStrF, putOkStrLn, putErrStrLn) where
 
 import           Data.Char (isSpace)
-import           System.IO(hFlush, stdout)
+import           System.IO(hFlush, stdout, stderr, hPutStr, hPutStrLn)
 
 type Decorator = String -> String
 
@@ -55,6 +55,11 @@ trim :: String -> String
 trim =  f . f
     where f = reverse . dropWhile isSpace
 
+putErrStrLn :: String -> IO ()
+putErrStrLn = hPutStrLn stderr . errStr
+
+putOkStrLn :: String -> IO ()
+putOkStrLn = hPutStrLn stderr . okStr 
 
 class Show a => Shon a where
     shon :: a -> String
