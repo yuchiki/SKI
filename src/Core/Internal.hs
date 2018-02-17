@@ -56,44 +56,31 @@ statement :: Parser Statement
 statement = importLib <|> assignment <|> RawTerm <$> termParser
 
 importLib :: Parser Statement
-importLib = string "import" *> spaces *> ((Import . get) <$> Core.Internal.identifier)
+importLib =  do
+    Token.reserved lexer "import"
+    Import <$> Token.identifier lexer
 
 assignment :: Parser Statement
 assignment = do
-    string "let"
-    spaces
-    (Atom i) <- Core.Internal.identifier
-    spaces
-    char '='
-    spaces
+    Token.reserved lexer "let"
+    i <- Token.identifier lexer
+    Token.reservedOp lexer "="
     t <- termParser
     return $ Assignment i t
 
+
 identifier :: Parser Term
 identifier = Atom <$> many1 letter
-
--- |
--- >>> Atom "a"
--- a
-eval :: Env -> Term -> Term
-eval _ (CInt i) = iterate (Atom "succ" `App`) (Atom "zero") !! i
-eval e t@(Atom s) = fromMaybe t $ Map.lookup s e
-eval _ (Atom "i" `App` t)                    = t
-eval _ (Atom "k" `App` t `App` _)            = t
-eval _ (Atom "s" `App` t1 `App` t2 `App` t3) = t1 `App` t3 `App` (t2 `App` t3)
-eval e (t1 `App` t2)                         = if eval e t1 /= t1 then eval e t1 `App` t2 else t1 `App` eval e t2
 
 def = emptyDef{
     Token.commentStart = ""
     , Token.commentEnd = ""
     , Token.identStart = alphaNum
     , Token.identLetter = alphaNum
-    , Token.opStart = oneOf ""
+    , Token.opStart = oneOf "="
     , Token.opLetter = oneOf ""
---    , Token.reservedOpNames = ["="]
---    , Token.reservedNames = ["let", "import", ":s"]
-    , Token.reservedOpNames = []
-    , Token.reservedNames = []
+    , Token.reservedOpNames = ["="]
+    , Token.reservedNames = ["import", "let", "import", ":s"]
 }
 
 lexer = Token.makeTokenParser def
@@ -111,3 +98,14 @@ terms = Token.parens lexer termParser <|> fmap Atom (Token.identifier lexer)
 
 mainParser :: Parser Term
 mainParser = termParser <* eof
+
+-- |
+-- >>> Atom "a"
+-- a
+eval :: Env -> Term -> Term
+eval _ (CInt i) = iterate (Atom "succ" `App`) (Atom "zero") !! i
+eval e t@(Atom s) = fromMaybe t $ Map.lookup s e
+eval _ (Atom "i" `App` t)                    = t
+eval _ (Atom "k" `App` t `App` _)            = t
+eval _ (Atom "s" `App` t1 `App` t2 `App` t3) = t1 `App` t3 `App` (t2 `App` t3)
+eval e (t1 `App` t2)                         = if eval e t1 /= t1 then eval e t1 `App` t2 else t1 `App` eval e t2
