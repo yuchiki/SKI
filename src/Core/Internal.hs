@@ -3,10 +3,13 @@ module Core.Internal where
 import qualified Data.Map           as Map
 import           Data.Maybe         (fromMaybe)
 import           Text.Parsec        (ParseError, char, digit, eof, letter,
-                                     many1, spaces, string, (<|>))
+                                     many1, notFollowedBy, choice, (<?>), oneOf, spaces, alphaNum, string, (<|>))
 import qualified Text.Parsec        as Parsec (parse)
 import           Text.Parsec.String
 import           Util
+import Text.Parsec.Expr
+import qualified Text.Parsec.Token as Token
+import Text.Parsec.Language
 import Text.Printf(printf)
 import Control.Arrow(second)
 
@@ -50,31 +53,21 @@ top :: Parser Statement
 top = spaces *> statement <* eof
 
 statement :: Parser Statement
-statement = importLib <|> assignment <|> RawTerm <$> term
+statement = importLib <|> assignment <|> RawTerm <$> termParser
 
 importLib :: Parser Statement
-importLib = string "import" *> spaces *> ((Import . get) <$> identifier)
+importLib = string "import" *> spaces *> ((Import . get) <$> Core.Internal.identifier)
 
 assignment :: Parser Statement
 assignment = do
     string "let"
     spaces
-    (Atom i) <- identifier
+    (Atom i) <- Core.Internal.identifier
     spaces
     char '='
-    t <- term
+    spaces
+    t <- termParser
     return $ Assignment i t
-
-term :: Parser Term
-term = foldl1 App <$> many1 argument
-
-argument :: Parser Term
-argument =
-    spaces *> (
-        char '(' *> term <* char ')' <|>
-        CInt . read <$> many1 digit <|>
-        identifier
-    ) <* spaces
 
 identifier :: Parser Term
 identifier = Atom <$> many1 letter
@@ -89,3 +82,32 @@ eval _ (Atom "i" `App` t)                    = t
 eval _ (Atom "k" `App` t `App` _)            = t
 eval _ (Atom "s" `App` t1 `App` t2 `App` t3) = t1 `App` t3 `App` (t2 `App` t3)
 eval e (t1 `App` t2)                         = if eval e t1 /= t1 then eval e t1 `App` t2 else t1 `App` eval e t2
+
+def = emptyDef{
+    Token.commentStart = ""
+    , Token.commentEnd = ""
+    , Token.identStart = alphaNum
+    , Token.identLetter = alphaNum
+    , Token.opStart = oneOf ""
+    , Token.opLetter = oneOf ""
+--    , Token.reservedOpNames = ["="]
+--    , Token.reservedNames = ["let", "import", ":s"]
+    , Token.reservedOpNames = []
+    , Token.reservedNames = []
+}
+
+lexer = Token.makeTokenParser def
+
+termParser :: Parser Term
+termParser = buildExpressionParser [[appOp]] terms <?> "term"
+
+appOp = Infix appOpBody AssocLeft
+    where
+        appOpBody = Token.whiteSpace lexer
+            *> notFollowedBy (choice . map (Token.reservedOp lexer) $ ["="])
+            *> return App
+
+terms = Token.parens lexer termParser <|> fmap Atom (Token.identifier lexer)
+
+mainParser :: Parser Term
+mainParser = termParser <* eof

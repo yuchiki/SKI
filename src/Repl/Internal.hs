@@ -97,7 +97,7 @@ addLibrary name contents (ls, env) = readLibrary env contents >>= \x -> Just (na
 -- todo: Merge withb repl system
 readLibrary :: Env -> String -> Maybe Env
 readLibrary env =
-    Just . foldl (\e (Assignment i t) ->  update i t e ) env . rights . map Core.parse . lines
+    Just . foldl (\e (Right (Assignment i t)) ->  update i t e ) env . map  Core.parse . lines
 
 
 -- |
