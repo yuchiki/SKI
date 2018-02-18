@@ -14,7 +14,7 @@ import Text.Printf(printf)
 import Control.Arrow(second)
 
 type Prog = [Statement]
-data Statement = Import String | Assignment String Term | RawTerm Term deriving (Show)
+data Statement = Import String | Assignment String Term | RawTerm Term deriving (Show, Eq)
 
 data Term = Atom {get :: String} | CInt Int | App Term Term deriving (Eq)
 
@@ -75,7 +75,7 @@ identifier = Atom <$> many1 letter
 def = emptyDef{
     Token.commentStart = ""
     , Token.commentEnd = ""
-    , Token.identStart = alphaNum
+    , Token.identStart = letter
     , Token.identLetter = alphaNum
     , Token.opStart = oneOf "="
     , Token.opLetter = oneOf ""
@@ -94,10 +94,10 @@ appOp = Infix appOpBody AssocLeft
             *> notFollowedBy (choice . map (Token.reservedOp lexer) $ ["="])
             *> return App
 
-terms = Token.parens lexer termParser <|> fmap Atom (Token.identifier lexer)
-
-mainParser :: Parser Term
-mainParser = termParser <* eof
+terms =
+    CInt . fromIntegral <$> Token.integer lexer <|>
+    Token.parens lexer termParser <|>
+    Atom <$> Token.identifier lexer
 
 -- |
 -- >>> Atom "a"
