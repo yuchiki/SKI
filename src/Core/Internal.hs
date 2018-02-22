@@ -68,10 +68,6 @@ assignment = do
     t <- termParser
     return $ Assignment i t
 
-
-identifier :: Parser Term
-identifier = Atom <$> many1 letter
-
 def = emptyDef{
     Token.commentStart = ""
     , Token.commentEnd = ""
