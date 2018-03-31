@@ -13,6 +13,8 @@ main = hspec spec
 spec :: Spec
 spec =
     describe "parse" $ do
+        it "should parse i" $
+            parse "i" `shouldBe` rr (Atom "i")
         it "should parse var" $
             parse "x" `shouldBe` rr (Atom "x")
         it "should parse integer" $
