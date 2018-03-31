@@ -1,6 +1,3 @@
-{-# LANGUAGE QuasiQuotes #-}
-
-
 module CoreSpec(main, spec) where
 
 import Test.Hspec
