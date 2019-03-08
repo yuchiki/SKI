@@ -1,11 +1,13 @@
+{-# LANGUAGE QuasiQuotes #-}
+
 module SKILibrary (stdlib) where
 
-stdlib :: String
-stdlib =
-    "\
-    \let cp = s i i \n\
-    \let rev = s (k (s i)) k \n\
+import HereDoc(heredoc)
 
-    \let zero = k i\n\
-    \let succ = s (s (k s) k) \n\
-    \"
+stdlib :: String
+stdlib = [heredoc|
+    let cp = s i i
+    let rev = s (k (s i)) k
+    let zero = k i
+    let succ = s (s (k s) k)
+|]
