@@ -6,7 +6,7 @@ module Repl.Internal where
 
 import Control.Exception.Safe(catch, IOException)
 import           Core                   (Env, Statement (..), empty, eval,
-                                         parse, showEnv, update, Term)
+                                         parse, showEnv, update, Term (..))
 import           Data.Either
 import qualified SKILibrary
 import           System.IO
@@ -71,7 +71,7 @@ readStatement (info@(_, env)) input =
 openLibrary :: FileName -> Info -> IO Info
 openLibrary libname info = do
         contents <- hGetContents =<< openFile (convertToLPath libname) ReadMode
-        let parseResult = addLibrary libname contents info 
+        let parseResult = addLibrary libname contents info
         case  parseResult of
             Just newInfo -> do
                 putOkStrLn $ printf "%s loaded." libname
@@ -93,8 +93,10 @@ updateAssign s t (ls, env) = (ls, update s t env)
 addLibrary :: String -> String -> Info -> Maybe Info
 addLibrary name contents (ls, env) = readLibrary env contents >>= \x -> Just (name : ls, x)
 
--- todo: Error check
--- todo: Merge withb repl system
+-- |
+-- >>> let env = update "x" (Atom "a") empty
+-- >>> readLibrary env "let y=b\nlet z=c"
+-- Just (fromList [("x",a),("y",b),("z",c)])
 readLibrary :: Env -> String -> Maybe Env
 readLibrary env =
     Just . foldl (\e (Right (Assignment i t)) ->  update i t e ) env . map  Core.parse . lines
