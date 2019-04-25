@@ -20,7 +20,9 @@ import Data.Maybe(fromJust)
 
 type FileName = String
 type Libraries = [String]
-data Info = Info { getLibs :: Libraries, getEnv :: Env } deriving (Show)
+data Info =
+    Info { getLibs :: Libraries, getEnv :: Env , isVerbose :: Bool }
+    deriving (Show)
 
 
 initRepl :: IO ()
@@ -60,7 +62,9 @@ readStatement info input =
             putStrLn $ printf "%s = %s" s (show t)
             return $ updateAssign s t info
         Right (RawTerm t)      -> do
-            mapM_ print $ saturate (eval (getEnv info)) t
+            let executionHistory = saturate (eval (getEnv info)) t
+            if isVerbose info then mapM_ print executionHistory
+            else print . last $ executionHistory
             return info
 
 -- |
@@ -87,7 +91,7 @@ openLibrary libname info = do
         return info
 
 emptyInfo :: Info
-emptyInfo = Info [] empty
+emptyInfo = Info [] empty False
 
 updateAssign :: String -> Term -> Info -> Info
 updateAssign s t info =
