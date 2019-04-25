@@ -43,6 +43,7 @@ repl info = do
         Right Show -> do
             putStr $ showEnv (getEnv info)
             return info
+        Right Verbose -> return info { isVerbose = not (isVerbose info) }
         Right Statement -> readStatement info input
         Left _ -> do
             putStr . errStr $ [heredoc|
@@ -126,7 +127,7 @@ convertToLPath = printf "standardLibrary/%s.ski"
   ? | help | :s | :show | statement
 -}
 
-data Command = Help | Show | Statement
+data Command = Help | Show | Verbose | Statement
 
 command :: ParsecS.Parser Command
 command =
@@ -135,6 +136,9 @@ command =
     try (string "help" *> spaces *> eof) *> return Help <|>
     try (string ":s" *> spaces *> eof) *> return Show <|>
     try (string ":show" *> spaces *> eof) *> return Show <|>
+    try (string ":v" *> spaces *> eof) *> return Verbose <|>
+    try (string ":verbose" *> spaces *> eof) *> return Verbose <|>
+
     return Statement
 
 initialMessage :: String
@@ -147,6 +151,7 @@ helpMessage :: String
 helpMessage = [heredoc|
     ?                         : show help
     :s                        : show definitions
+    :v                        : flip verbosity
     <term>                    : evaluate term
     import <library>          : import library
     let <identifier> = <term> : define term
