@@ -20,7 +20,7 @@ import Data.Maybe(fromJust)
 
 type FileName = String
 type Libraries = [String]
-type Info = (Libraries, Env)
+data Info = Info { getLibs :: Libraries, getEnv :: Env } deriving (Show)
 
 
 initRepl :: IO ()
@@ -30,8 +30,8 @@ initRepl = do
     iterateM_ repl . fromJust $  addLibrary "SKI" SKILibrary.stdlib emptyInfo
 
 repl :: Info -> IO Info
-repl info@(ls, e) = do
-    putStrF $ prompt ls
+repl info = do
+    putStrF $ prompt (getLibs info)
     input <- trim <$> getLine
     if null input then return info
     else case Text.Parsec.parse command "" input of
@@ -39,7 +39,7 @@ repl info@(ls, e) = do
             putStr helpMessage
             return info
         Right Show -> do
-            putStr $ showEnv e
+            putStr $ showEnv (getEnv info)
             return info
         Right Statement -> readStatement info input
         Left _ -> do
@@ -50,7 +50,7 @@ repl info@(ls, e) = do
             return info
 
 readStatement :: Info -> String -> IO Info
-readStatement (info@(_, env)) input =
+readStatement info input =
     case Core.parse input of
         Left _                 -> do
             putStrLn $ errStr "could not parse."
@@ -60,14 +60,16 @@ readStatement (info@(_, env)) input =
             putStrLn $ printf "%s = %s" s (show t)
             return $ updateAssign s t info
         Right (RawTerm t)      -> do
-            mapM_ print $ saturate (eval env) t
+            mapM_ print $ saturate (eval (getEnv info)) t
             return info
 
 -- |
--- >>> info <- openLibrary "sampleLib" ([], empty)
+-- >>> info <- openLibrary "sampleLib" emptyInfo
 -- ...
--- >>>info
--- (["sampleLib"],fromList [("plus",s i (k succ))])
+-- >>> getLibs info
+-- ["sampleLib"]
+-- >>> getEnv info
+-- fromList [("plus",s i (k succ))]
 openLibrary :: FileName -> Info -> IO Info
 openLibrary libname info = do
         contents <- hGetContents =<< openFile (convertToLPath libname) ReadMode
@@ -85,13 +87,18 @@ openLibrary libname info = do
         return info
 
 emptyInfo :: Info
-emptyInfo = ([], empty)
+emptyInfo = Info [] empty
 
 updateAssign :: String -> Term -> Info -> Info
-updateAssign s t (ls, env) = (ls, update s t env)
+updateAssign s t info =
+    let env = getEnv info in
+    info { getEnv = update s t env}
 
 addLibrary :: String -> String -> Info -> Maybe Info
-addLibrary name contents (ls, env) = readLibrary env contents >>= \x -> Just (name : ls, x)
+addLibrary name contents info =
+    let libs =  getLibs info in
+    let env = getEnv info in
+    readLibrary env contents >>= \x -> Just (info {getLibs = name : libs, getEnv = x})
 
 -- |
 -- >>> let env = update "x" (Atom "a") empty
